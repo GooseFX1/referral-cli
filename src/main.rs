@@ -26,42 +26,59 @@ mod utils;
 
 #[derive(Debug, Parser)]
 pub struct Opts {
+    /// The cluster RPC url
     #[clap(long, env = "HTTP_URL")]
     http_url: String,
 
+    /// The cluster WS url
     #[clap(long, env = "WS_URL")]
     ws_url: Option<String>,
 
+    /// Keypair base58 string
     #[clap(long, env)]
     keypair: Option<String>,
 
+    /// The project account key
     #[clap(long, env)]
     project: Option<Pubkey>,
 
-    #[clap(long, env)]
+    /// The referral program
+    #[clap(
+        long,
+        env,
+        default_value = "REFER4ZgmyYx9c6He5XfaTMiGfdLwRnkV4RPp9t9iF3"
+    )]
     referral_program: Pubkey,
 
+    /// Subcommand
     #[clap(subcommand)]
     command: Action,
 }
 
 #[derive(Debug, Subcommand, Clone)]
 pub enum Action {
-    CreateReferralAccount {
-        name: Option<String>,
-    },
+    /// Create a referral account, optionally wih a name
+    CreateReferralAccount { name: Option<String> },
+    /// Create token-accounts for a referral account
     CreateReferralTokenAccounts {
+        /// The referral account key
         #[clap(long, env)]
         referral_account: Pubkey,
+        /// Path to a json file containing a list of mints
         path: String,
     },
+    /// Fetch, deserialize, and display a referral account
     FetchReferralAccount {
-        account: Pubkey, // BGQEceQk6STcMAW7cD1CpabFAeu7J5DwjJPdyTPsVDVb
+        /// The account to fetch
+        account: Pubkey,
     },
 }
 
+/// Max number of addresses a LUT can contain
 const MAX_LUT_SIZE: usize = 256;
+/// How many accounts each init-token-account instruction needs
 const INIT_REFERRAL_ATA_ACCOUNTS_LEN: usize = 7;
+/// Max number of accounts that can fit in a legacy transaction
 const MAX_LEGACY_ACCOUNTS: usize = 32;
 
 #[tokio::main]
@@ -151,7 +168,7 @@ async fn main() -> anyhow::Result<()> {
         } => {
             let mints = serde_json::from_str::<Vec<String>>(&std::fs::read_to_string(path)?)?
                 .into_iter()
-                .filter_map(|p| Some(Pubkey::from_str(&p).ok()?))
+                .filter_map(|p| Pubkey::from_str(&p).ok())
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>();
